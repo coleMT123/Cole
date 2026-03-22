@@ -1686,19 +1686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, { passive: true });
 
-  // Fade nav on scroll down, restore on scroll up — works on phone & desktop
-  document.querySelectorAll('.page').forEach(page => {
-    let lastScroll = 0;
-    page.addEventListener('scroll', () => {
-      const current = page.scrollTop;
-      if (current > lastScroll && current > 40) {
-        nav.classList.add('hidden');
-      } else {
-        nav.classList.remove('hidden');
-      }
-      lastScroll = Math.max(0, current);
-    }, { passive: true });
-  });
+  // Bottom nav always stays visible — never hide on scroll
 
   // Parallax — bg moves at 10% of scroll speed
   const progressPage = document.getElementById('page-progress');
