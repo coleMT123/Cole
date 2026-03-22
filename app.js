@@ -1558,6 +1558,7 @@ async function renderFriends() {
       const groupSnap = await _fbDb.collection('groups')
         .where('members', 'array-contains', _currentUser.uid).get();
       if (!groupSnap.empty) {
+        html += `<div class="friends-groups-label">Groups</div>`;
         for (const groupDoc of groupSnap.docs) {
           const g = groupDoc.data();
           html += `<div class="friends-group-header">👥 ${g.name}</div>`;

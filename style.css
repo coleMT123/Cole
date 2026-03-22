@@ -2750,11 +2750,19 @@ body.theme-wood .friend-avatar { background: linear-gradient(135deg, #c8852a, #8
 }
 
 /* ── GROUPS ── */
-.friends-group-header {
-  font-size: 0.85rem;
-  font-weight: 700;
+.friends-groups-label {
+  font-size: 2.3rem;
+  font-weight: 800;
   color: #f59e0b;
-  margin: 20px 0 8px;
+  margin: 28px 0 4px;
+  letter-spacing: -0.5px;
+}
+
+.friends-group-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #aaa;
+  margin: 16px 0 8px;
   letter-spacing: 0.02em;
 }
 
