@@ -1263,14 +1263,15 @@ function renderWeeklyCalendar(data) {
     const isFuture = dateStr > today;
     const dayData = data[dateStr] || {};
     const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    const dots = getOrderedHabits().map(h =>
+    const habits = getOrderedHabits();
+    const dots = habits.map(h =>
       `<div class="cal-dot" style="background:${dayData[h.id] && !isFuture ? h.color : '#2a2a2a'}"></div>`
     ).join('');
     return `
       <div class="cal-cell weekly-cell${isToday ? ' today' : ''}">
         <div class="weekly-day-name">${dayNames[d.getDay()]}</div>
         <div class="cal-num">${d.getDate()}</div>
-        <div class="cal-dots">${dots}</div>
+        <div class="cal-dots" data-count="${habits.length}">${dots}</div>
       </div>`;
   });
   const row1 = allCells.slice(0, 4).join('');

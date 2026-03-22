@@ -2051,13 +2051,44 @@ body.theme-wood .account-form-toggle button.active { color: #c8852a; }
   align-content: start;
   justify-items: center;
   overflow: hidden;
+  flex: 1;
 }
 .weekly-cell .cal-dot {
   width: 100%;
-  max-width: 18px;
   aspect-ratio: 1 / 1;
   height: auto;
   border-radius: 50%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Auto-shrink dots based on habit count */
+.weekly-cell .cal-dots[data-count="1"],
+.weekly-cell .cal-dots[data-count="2"],
+.weekly-cell .cal-dots[data-count="3"],
+.weekly-cell .cal-dots[data-count="4"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+.weekly-cell .cal-dots[data-count="5"],
+.weekly-cell .cal-dots[data-count="6"],
+.weekly-cell .cal-dots[data-count="7"],
+.weekly-cell .cal-dots[data-count="8"] {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+.weekly-cell .cal-dots[data-count="9"],
+.weekly-cell .cal-dots[data-count="10"],
+.weekly-cell .cal-dots[data-count="11"],
+.weekly-cell .cal-dots[data-count="12"] {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+}
+.weekly-cell .cal-dots[data-count="13"],
+.weekly-cell .cal-dots[data-count="14"],
+.weekly-cell .cal-dots[data-count="15"],
+.weekly-cell .cal-dots[data-count="16"] {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
 }
 .cal-view-toggle {
   background: rgba(60, 60, 60, 0.7);
