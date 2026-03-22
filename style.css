@@ -2390,6 +2390,29 @@ body.theme-wood .cal-view-toggle:hover { border-color: #c8852a; color: #c8852a; 
   gap: 14px;
 }
 
+.fcard-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fcard-remove-btn {
+  background: none;
+  border: none;
+  color: #555;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.fcard-remove-btn:hover {
+  color: #ff4444;
+  background: #ff444415;
+}
+
 .friend-avatar {
   width: 52px;
   height: 52px;

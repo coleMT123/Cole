@@ -148,6 +148,19 @@ async function _handleFriendAdd(friendUid) {
   }
 }
 
+async function removeFriend(friendUid) {
+  if (!_currentUser || !_fbDb) return;
+  if (!confirm('Remove this friend?')) return;
+  try {
+    await _fbDb.collection('users').doc(_currentUser.uid).update({
+      friends: firebase.firestore.FieldValue.arrayRemove(friendUid)
+    });
+    renderFriends();
+  } catch(e) {
+    alert('Could not remove friend: ' + (e.code || e.message));
+  }
+}
+
 function queueSync() {
   if (!_currentUser || !_fbDb) return;
   clearTimeout(_syncTimer);
@@ -1524,7 +1537,10 @@ async function renderFriends() {
               <div class="fcard-header">
                 <div class="friend-avatar">${friendAvatarInner}</div>
                 <div class="fcard-header-info">
-                  <div class="friend-name">${friendName}</div>
+                  <div class="fcard-name-row">
+                    <div class="friend-name">${friendName}</div>
+                    <button class="fcard-remove-btn" onclick="removeFriend('${friendUid}')" title="Remove friend">✕</button>
+                  </div>
                   <div class="fcard-meta">
                     ${bestStreak > 0 ? `<span class="fcard-best-streak">🔥 ${bestStreak} day streak</span>` : '<span class="fcard-meta-dim">No streak yet</span>'}
                   </div>
