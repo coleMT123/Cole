@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "habit-tracker",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["/Users/coletaylor/Desktop/All/personal-website/server.py"],
+      "port": 3000
+    }
+  ]
+}
