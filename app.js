@@ -1537,7 +1537,6 @@ async function renderFriends() {
                 <div class="fcard-header-info">
                   <div class="fcard-name-row">
                     <div class="friend-name">${friendName}</div>
-                    <button class="fcard-remove-btn" onclick="removeFriend('${friendUid}')" title="Remove friend">✕</button>
                   </div>
                   <div class="fcard-meta">
                     ${bestStreak > 0 ? `<span class="fcard-best-streak">🔥 ${bestStreak} day streak</span>` : '<span class="fcard-meta-dim">No streak yet</span>'}
