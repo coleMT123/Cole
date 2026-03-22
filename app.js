@@ -752,6 +752,9 @@ function goTo(index) {
   document.querySelectorAll('.nav-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === index);
   });
+  // Slide the gold indicator bar (centered under each tab)
+  const indicator = document.getElementById('nav-indicator');
+  if (indicator) indicator.style.left = `calc(${index * 25}% + 5.5%)`;
   // Toggle progress background visibility (avoid bleed-through on other pages)
   document.body.classList.toggle('page-progress-active', index === 0);
   // Always restore nav when switching pages
