@@ -2825,3 +2825,48 @@ body.theme-wood .friend-avatar { background: linear-gradient(135deg, #c8852a, #8
 }
 .fmgr-search-input::placeholder { color: #555; }
 .fmgr-search-input:focus { border-color: #f59e0b55; }
+
+/* ── APP LOADING SCREEN ── */
+#app-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0f0f0f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  transition: opacity 0.4s ease;
+}
+#app-loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.app-loading-fire {
+  font-size: 3.5rem;
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+.app-loading-text {
+  font-size: 1rem;
+  color: #888;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+@keyframes loading-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.12); opacity: 0.8; }
+}
+
+/* ── EMOJI TYPE INPUT ── */
+.emoji-type-input {
+  text-align: center;
+  font-size: 1.5rem;
+  cursor: text;
+  border: 1.5px solid #333;
+  caret-color: transparent;
+}
+.emoji-type-input:focus {
+  border-color: #f59e0b55;
+  outline: none;
+}

@@ -117,6 +117,9 @@ function initFirebase() {
 
     _fbAuth.onAuthStateChanged(async user => {
       _currentUser = user;
+      // Hide loading screen now that auth state is known
+      const ls = document.getElementById('app-loading-screen');
+      if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 450); }
       if (user) {
         _hideAuthGate();
         loadFromCloud();
@@ -137,7 +140,8 @@ function initFirebase() {
       refreshAccountArea();
     });
   } catch(e) {
-    // On any Firebase error, keep gate showing with the buttons
+    const ls = document.getElementById('app-loading-screen');
+    if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 450); }
     _showAuthGateLanding();
   }
 }
@@ -631,15 +635,19 @@ function showAddHabitForm() {
   form.innerHTML = `
     <div class="add-habit-inputs">
       <div class="emoji-picker-wrap">
-        <button class="emoji-picker-btn" id="emoji-picker-btn" onclick="toggleEmojiPicker()">🌟</button>
+        <input type="text" id="emoji-picker-btn" class="emoji-picker-btn emoji-type-input"
+               value="🌟" maxlength="4"
+               oninput="selectEmoji(this.value.trim() || '🌟')"
+               onclick="this.select()"
+               title="Tap to type any emoji from your keyboard"/>
         <div class="emoji-dropdown hidden" id="emoji-dropdown">${emojiGrid}</div>
       </div>
       <input type="text" id="new-habit-name" class="add-habit-name-input" placeholder="Habit name...">
     </div>
     <button class="add-habit-save" onclick="saveNewHabit()">Add Habit</button>
   `;
-  const btn = document.getElementById('add-habit-btn');
-  if (btn) btn.insertAdjacentElement('beforebegin', form);
+  const list = document.getElementById('habit-list');
+  if (list) list.prepend(form);
   document.getElementById('new-habit-name')?.focus();
 }
 
