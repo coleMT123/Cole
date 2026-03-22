@@ -72,11 +72,19 @@ async function authAppleSignIn() {
   }
 }
 
-function initFirebase() {
-  // Always start with buttons visible — no loading delay
-  _showAuthGateLanding();
+function _hideLoadingScreen() {
+  const ls = document.getElementById('app-loading-screen');
+  if (ls) {
+    ls.classList.add('hidden');
+    setTimeout(() => ls.remove(), 700);
+  }
+}
 
+function initFirebase() {
+  // Do NOT show auth gate yet — wait for Firebase to check if user is logged in
   if (typeof FIREBASE_CONFIG === 'undefined' || FIREBASE_CONFIG.apiKey.startsWith('PASTE')) {
+    _hideLoadingScreen();
+    _showAuthGateLanding();
     return;
   }
 
@@ -117,10 +125,9 @@ function initFirebase() {
 
     _fbAuth.onAuthStateChanged(async user => {
       _currentUser = user;
-      // Hide loading screen now that auth state is known
-      const ls = document.getElementById('app-loading-screen');
-      if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 450); }
       if (user) {
+        // Logged in — hide loading screen, never show login
+        _hideLoadingScreen();
         _hideAuthGate();
         loadFromCloud();
         const pendingUid = localStorage.getItem('pendingFriendAdd');
@@ -135,13 +142,14 @@ function initFirebase() {
           alert('You joined the group! Check the Friends tab.');
         }
       } else {
+        // Not logged in — hide loading, show login
+        _hideLoadingScreen();
         _showAuthGateLanding();
       }
       refreshAccountArea();
     });
   } catch(e) {
-    const ls = document.getElementById('app-loading-screen');
-    if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 450); }
+    _hideLoadingScreen();
     _showAuthGateLanding();
   }
 }
