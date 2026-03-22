@@ -250,7 +250,7 @@ function renderAuthGateForm() {
     <form id="gate-form" autocomplete="on" onsubmit="submitGateAuth();return false;">
       ${isCreate ? `<input type="text" id="gate-name" name="name" class="account-input" placeholder="Your name"
              autocomplete="name" autocapitalize="words" autocorrect="off" spellcheck="false"/>` : ''}
-      <input type="email" id="gate-email" name="email" class="account-input" placeholder="Email address"
+      <input type="email" id="gate-email" name="email" class="account-input" placeholder="Gmail address"
              autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"/>
       <input type="password" id="gate-password" name="password" class="account-input" placeholder="Password"
              autocomplete="${isCreate ? 'new-password' : 'current-password'}"/>
@@ -1304,28 +1304,13 @@ function renderJournal() {
       item?.classList.remove('done');
     }
 
-    // Auto-submit on Enter key or blur
+    // Keep draft in memory while typing — only save on checkmark
     if (textarea && !submitted) {
-      textarea.onkeydown = (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          if (textarea.value.trim()) submitGrateful(n);
-        }
-      };
-
-      // Auto-submit when user taps away (fixes mobile double-tap on check button)
-      textarea.onblur = () => {
-        if (textarea.value.trim()) submitGrateful(n);
-      };
-
-      // Auto-submit after 1.5s of no typing
-      let autoTimer = null;
-      textarea.oninput = () => {
-        clearTimeout(autoTimer);
-        if (textarea.value.trim()) {
-          autoTimer = setTimeout(() => submitGrateful(n), 1500);
-        }
-      };
+      // Restore any in-progress draft
+      if (_gratefulDrafts[n] !== undefined) textarea.value = _gratefulDrafts[n];
+      textarea.oninput = () => { _gratefulDrafts[n] = textarea.value; };
+      textarea.onkeydown = null;
+      textarea.onblur = null;
     }
   });
 
@@ -1333,6 +1318,7 @@ function renderJournal() {
 }
 
 const _gratefulSubmitTimes = {};
+const _gratefulDrafts = {}; // in-memory drafts, cleared on submit
 function submitGrateful(n) {
   const now = Date.now();
   const today = getToday();
@@ -1373,9 +1359,10 @@ function submitGrateful(n) {
     return;
   }
 
-  const text = textarea?.value?.trim() || '';
+  const text = (textarea?.value || _gratefulDrafts[n] || '').trim();
   if (!text) return;
   _gratefulSubmitTimes[n] = now;
+  delete _gratefulDrafts[n];
   journals[today][`g${n}`] = text;
   journals[today][`s${n}`] = true;
   if (doneText) doneText.textContent = 'completed';
@@ -2142,6 +2129,7 @@ function resetAllData() {
   }
 
   document.addEventListener('touchstart', e => {
+    if (typeof currentPage === 'undefined' || currentPage !== 3) return;
     if (getScrollTop() > 2) return;
     startY = e.touches[0].clientY;
     pulling = true;
@@ -2224,8 +2212,12 @@ async function openFriendsManager() {
       <button class="fmgr-add-btn" onclick="shareFriendLink('https://habit-tracker-2a0ed.web.app/?add=${_currentUser ? _currentUser.uid : ''}');">
         <span class="fmgr-add-icon">🔗</span> Copy Friend Invite Link
       </button>
+      <button class="fmgr-add-btn" style="background:#2a2a2a;color:#ccc;border:1.5px dashed #444;margin-top:8px" onclick="searchFriendsFromContacts()">
+        <span class="fmgr-add-icon">📇</span> Find from Contacts
+      </button>
 
       <div class="fmgr-section-label" style="margin-top:20px">Your Friends</div>
+      <input type="text" id="fmgr-search" class="fmgr-search-input" placeholder="Search friends…" oninput="filterFriendsList(this.value)"/>
       <div id="fmgr-friends-list"><div class="fmgr-loading">Loading…</div></div>
 
       <div class="fmgr-section-label" style="margin-top:24px">Groups</div>
@@ -2329,6 +2321,31 @@ function closeFriendsManager() {
   if (!modal) return;
   modal.classList.remove('open');
   setTimeout(() => modal.remove(), 300);
+}
+
+function filterFriendsList(query) {
+  const rows = document.querySelectorAll('.fmgr-friend-row');
+  const q = query.toLowerCase();
+  rows.forEach(row => {
+    const name = row.querySelector('.fmgr-friend-name')?.textContent.toLowerCase() || '';
+    row.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+async function searchFriendsFromContacts() {
+  if (!('contacts' in navigator && 'ContactsManager' in window)) {
+    alert('Contact access isn\'t supported on this device. Use the invite link instead.');
+    return;
+  }
+  try {
+    const contacts = await navigator.contacts.select(['name', 'email'], { multiple: true });
+    if (!contacts || contacts.length === 0) return;
+    const emails = contacts.flatMap(c => c.email || []);
+    if (emails.length === 0) { alert('No email addresses found in selected contacts.'); return; }
+    alert(`Found ${emails.length} email(s). Share your invite link with them:\nhttps://habit-tracker-2a0ed.web.app/?add=${_currentUser?.uid || ''}`);
+  } catch(e) {
+    if (e.name !== 'AbortError') alert('Could not access contacts.');
+  }
 }
 
 function promptCreateGroup() {

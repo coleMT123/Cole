@@ -2801,3 +2801,19 @@ body.theme-wood .friend-avatar { background: linear-gradient(135deg, #c8852a, #8
   gap: 6px;
   flex-shrink: 0;
 }
+
+/* ── FRIEND SEARCH ── */
+.fmgr-search-input {
+  width: 100%;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  outline: none;
+  box-sizing: border-box;
+}
+.fmgr-search-input::placeholder { color: #555; }
+.fmgr-search-input:focus { border-color: #f59e0b55; }
