@@ -1402,13 +1402,28 @@ async function renderFriends() {
 
     let html = `<div class="friends-row">`;
 
-    if (friends.length === 0) {
+    const demoFriend = {
+      displayName: 'Computer',
+      email: 'demo@example.com',
+      habitData: { [getToday()]: { wake: true, clean: true, shower: false, teeth: true, workout: false } },
+      customHabits: [],
+      photoDataUrl: ''
+    };
+    const showDemo = friends.length === 0;
+
+    if (showDemo) {
+      // Show demo "Computer" friend bubble
+      html += `
+        <div class="friend-bubble-wrap">
+          <div class="friend-bubble" style="background:#444;color:#fff">C</div>
+          <div class="friend-bubble-name">Computer</div>
+        </div>
+      `;
       html += `
         <div class="add-friend-circle-wrap" onclick="shareFriendLink('${shareUrl}')">
           <div class="add-friend-circle"><span>+</span></div>
           <div class="add-friend-label">Add Friend</div>
         </div>
-        <div class="friends-empty-inline">Invite a friend<br>to get started!</div>
       `;
     } else {
       // Show existing friend avatars as circles
@@ -1441,6 +1456,27 @@ async function renderFriends() {
     }
 
     html += `</div>`;
+
+    if (showDemo) {
+      const demoHabits = HABITS;
+      const demoToday = demoFriend.habitData[getToday()] || {};
+      const demoDots = demoHabits.map(h =>
+        `<span class="friend-habit-dot ${demoToday[h.id] ? 'done' : ''}" title="${h.name}" style="--dot-color:${h.color || '#555'}">${h.emoji || '●'}</span>`
+      ).join('');
+      const demoCompleted = demoHabits.filter(h => !!demoToday[h.id]).length;
+      html += `
+        <div class="friends-list" id="friends-list">
+          <div class="friend-card">
+            <div class="friend-avatar" style="background:#444;color:#fff">C</div>
+            <div class="friend-info">
+              <div class="friend-name">Computer <span style="font-size:0.7rem;color:#888;font-weight:400">(demo)</span></div>
+              <div class="friend-streak">${demoCompleted}/${demoHabits.length} habits today</div>
+              <div class="friend-dots">${demoDots}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
 
     if (friends.length > 0) {
       html += `<div class="friends-list" id="friends-list">`;
