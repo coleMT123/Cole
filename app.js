@@ -1432,12 +1432,6 @@ async function renderFriends() {
           <div class="friend-bubble-name">Computer</div>
         </div>
       `;
-      html += `
-        <div class="add-friend-circle-wrap" onclick="shareFriendLink('${shareUrl}')">
-          <div class="add-friend-circle"><span>+</span></div>
-          <div class="add-friend-label">Add Friend</div>
-        </div>
-      `;
     } else {
       // Show existing friend avatars as circles
       for (const friendUid of friends) {
@@ -1460,12 +1454,6 @@ async function renderFriends() {
           `;
         } catch(e) { /* skip */ }
       }
-      html += `
-        <div class="add-friend-circle-wrap" onclick="shareFriendLink('${shareUrl}')">
-          <div class="add-friend-circle"><span>+</span></div>
-          <div class="add-friend-label">Add</div>
-        </div>
-      `;
     }
 
     html += `</div>`;
@@ -1564,15 +1552,7 @@ async function renderFriends() {
     const shareUrl = _currentUser
       ? 'https://habit-tracker-2a0ed.web.app/?add=' + _currentUser.uid
       : 'https://habit-tracker-2a0ed.web.app';
-    container.innerHTML = `
-      <div class="friends-row">
-        <div class="add-friend-circle-wrap" onclick="shareFriendLink('${shareUrl}')">
-          <div class="add-friend-circle"><span>+</span></div>
-          <div class="add-friend-label">Add Friend</div>
-        </div>
-        <div class="friends-empty-inline">Invite friends<br>to get started!</div>
-      </div>
-    `;
+    container.innerHTML = `<div class="friends-empty-inline" style="padding:20px 0;color:#555;">Tap + to invite friends</div>`;
   }
 }
 
