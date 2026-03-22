@@ -190,6 +190,17 @@ function queueSync() {
   _syncTimer = setTimeout(syncToCloud, 2500);
 }
 
+// Sync immediately when app goes to background or closes
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && _currentUser && _fbDb) {
+    clearTimeout(_syncTimer);
+    syncToCloud();
+  }
+});
+window.addEventListener('pagehide', () => {
+  if (_currentUser && _fbDb) syncToCloud();
+});
+
 async function syncToCloud() {
   if (!_currentUser || !_fbDb) return;
   try {
