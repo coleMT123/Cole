@@ -1461,19 +1461,30 @@ async function renderFriends() {
     if (showDemo) {
       const demoHabits = HABITS;
       const demoToday = demoFriend.habitData[getToday()] || {};
-      const demoDots = demoHabits.map(h =>
-        `<span class="friend-habit-dot ${demoToday[h.id] ? 'done' : ''}" title="${h.name}" style="--dot-color:${h.color || '#555'}">${h.emoji || '●'}</span>`
-      ).join('');
       const demoCompleted = demoHabits.filter(h => !!demoToday[h.id]).length;
+      const demoPct = Math.round((demoCompleted / demoHabits.length) * 100);
+      const demoRows = demoHabits.map(h => {
+        const done = !!demoToday[h.id];
+        return `<div class="fcard-habit-row ${done ? 'done' : ''}">
+          <span class="fcard-habit-name">${h.name}</span>
+          <span class="fcard-habit-check">${done ? '✓' : ''}</span>
+        </div>`;
+      }).join('');
       html += `
         <div class="friends-list" id="friends-list">
           <div class="friend-card">
-            <div class="friend-avatar" style="background:#444;color:#fff">C</div>
-            <div class="friend-info">
-              <div class="friend-name">Computer <span style="font-size:0.7rem;color:#888;font-weight:400">(demo)</span></div>
-              <div class="friend-streak">${demoCompleted}/${demoHabits.length} habits today</div>
-              <div class="friend-dots">${demoDots}</div>
+            <div class="fcard-header">
+              <div class="friend-avatar" style="background:#444;color:#fff;overflow:hidden">C</div>
+              <div class="fcard-header-info">
+                <div class="fcard-name-row">
+                  <div class="friend-name">Computer <span style="font-size:0.7rem;color:#666;font-weight:400">(demo)</span></div>
+                </div>
+                <div class="fcard-meta"><span class="fcard-meta-dim">Demo account</span></div>
+                <div class="fcard-progress-bar-wrap"><div class="fcard-progress-bar" style="width:${demoPct}%"></div></div>
+                <div class="fcard-progress-label">${demoCompleted}/${demoHabits.length} habits today</div>
+              </div>
             </div>
+            <div class="fcard-habits">${demoRows}</div>
           </div>
         </div>
       `;
@@ -1513,7 +1524,6 @@ async function renderFriends() {
             const hStreak = getStreak(h.id, fd.habitData || {});
             return `
               <div class="fcard-habit-row ${done ? 'done' : ''}">
-                <span class="fcard-habit-emoji">${h.emoji || '●'}</span>
                 <span class="fcard-habit-name">${h.name}</span>
                 ${hStreak > 0 ? `<span class="fcard-habit-streak">🔥${hStreak}</span>` : ''}
                 <span class="fcard-habit-check">${done ? '✓' : ''}</span>
