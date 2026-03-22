@@ -2748,3 +2748,56 @@ body.theme-wood .friend-avatar { background: linear-gradient(135deg, #c8852a, #8
   font-size: 0.85rem;
   padding: 12px 0;
 }
+
+/* ── GROUPS ── */
+.friends-group-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f59e0b;
+  margin: 20px 0 8px;
+  letter-spacing: 0.02em;
+}
+
+.fmgr-group-btn {
+  background: #2a2a2a;
+  color: #f59e0b;
+  border: 1.5px dashed #f59e0b44;
+}
+
+.fmgr-group-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+}
+
+.fmgr-group-icon {
+  font-size: 1.3rem;
+  width: 38px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.fmgr-group-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.fmgr-group-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.fmgr-group-meta {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 2px;
+}
+
+.fmgr-group-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}

@@ -105,8 +105,13 @@ function initFirebase() {
     // Save ?add= param to localStorage before it gets wiped by auth redirects
     const params = new URLSearchParams(window.location.search);
     const addUidParam = params.get('add');
+    const joinGroupParam = params.get('joingroup');
     if (addUidParam) {
       localStorage.setItem('pendingFriendAdd', addUidParam);
+      window.history.replaceState({}, '', window.location.href.split('?')[0]);
+    }
+    if (joinGroupParam) {
+      localStorage.setItem('pendingGroupJoin', joinGroupParam);
       window.history.replaceState({}, '', window.location.href.split('?')[0]);
     }
 
@@ -119,6 +124,12 @@ function initFirebase() {
         if (pendingUid && pendingUid !== user.uid) {
           localStorage.removeItem('pendingFriendAdd');
           await _handleFriendAdd(pendingUid);
+        }
+        const pendingGroup = localStorage.getItem('pendingGroupJoin');
+        if (pendingGroup) {
+          localStorage.removeItem('pendingGroupJoin');
+          await joinGroup(pendingGroup);
+          alert('You joined the group! Check the Friends tab.');
         }
       } else {
         _showAuthGateLanding();
@@ -1555,12 +1566,60 @@ async function renderFriends() {
       html += `</div>`;
     }
 
+    // ── GROUPS ──
+    try {
+      const groupSnap = await _fbDb.collection('groups')
+        .where('members', 'array-contains', _currentUser.uid).get();
+      if (!groupSnap.empty) {
+        for (const groupDoc of groupSnap.docs) {
+          const g = groupDoc.data();
+          html += `<div class="friends-group-header">👥 ${g.name}</div>`;
+          html += `<div class="friends-list">`;
+          for (const memberUid of (g.members || [])) {
+            if (memberUid === _currentUser.uid) continue;
+            try {
+              const fd = (await _fbDb.collection('users').doc(memberUid).get()).data() || {};
+              const mEmail = fd.email || memberUid;
+              const mName = fd.displayName || mEmail;
+              const mInitial = mName.charAt(0).toUpperCase();
+              const mPhoto = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" alt="${mInitial}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : mInitial;
+              const mHabits = (fd.customHabits && fd.customHabits.length > 0) ? fd.customHabits : HABITS;
+              const mToday = (fd.habitData && fd.habitData[getToday()]) || {};
+              const mDone = mHabits.filter(h => !!mToday[h.id]).length;
+              const mPct = mHabits.length > 0 ? Math.round((mDone / mHabits.length) * 100) : 0;
+              const mBest = Math.max(0, ...mHabits.map(h => getStreak(h.id, fd.habitData || {})));
+              const mRows = mHabits.map(h => {
+                const done = !!mToday[h.id];
+                const s = getStreak(h.id, fd.habitData || {});
+                return `<div class="fcard-habit-row ${done ? 'done' : ''}">
+                  <span class="fcard-habit-name">${h.name}</span>
+                  ${s > 0 ? `<span class="fcard-habit-streak">🔥${s}</span>` : ''}
+                  <span class="fcard-habit-check">${done ? '✓' : ''}</span>
+                </div>`;
+              }).join('');
+              html += `
+                <div class="friend-card">
+                  <div class="fcard-header">
+                    <div class="friend-avatar">${mPhoto}</div>
+                    <div class="fcard-header-info">
+                      <div class="fcard-name-row"><div class="friend-name">${mName}</div></div>
+                      <div class="fcard-meta">${mBest > 0 ? `<span class="fcard-best-streak">🔥 ${mBest} day streak</span>` : '<span class="fcard-meta-dim">No streak yet</span>'}</div>
+                      <div class="fcard-progress-bar-wrap"><div class="fcard-progress-bar" style="width:${mPct}%"></div></div>
+                      <div class="fcard-progress-label">${mDone}/${mHabits.length} habits today</div>
+                    </div>
+                  </div>
+                  <div class="fcard-habits">${mRows}</div>
+                </div>`;
+            } catch(e) { /* skip */ }
+          }
+          html += `</div>`;
+        }
+      }
+    } catch(e) { /* groups not available */ }
+
     container.innerHTML = html;
   } catch(e) {
     console.warn('renderFriends error:', e);
-    const shareUrl = _currentUser
-      ? 'https://habit-tracker-2a0ed.web.app/?add=' + _currentUser.uid
-      : 'https://habit-tracker-2a0ed.web.app';
     container.innerHTML = `<div class="friends-empty-inline" style="padding:20px 0;color:#555;">Tap + to invite friends</div>`;
   }
 }
@@ -2127,51 +2186,97 @@ async function openFriendsManager() {
     <div class="fmgr-sheet">
       <div class="fmgr-handle"></div>
       <div class="fmgr-header">
-        <span class="fmgr-title">Manage Friends</span>
+        <span class="fmgr-title">Friends & Groups</span>
         <button class="fmgr-close" onclick="closeFriendsManager()">✕</button>
       </div>
+
       <div class="fmgr-section-label">Add a Friend</div>
-      <button class="fmgr-add-btn" onclick="shareFriendLink('https://habit-tracker-2a0ed.web.app/?add=${_currentUser ? _currentUser.uid : ''}'); closeFriendsManager();">
-        <span class="fmgr-add-icon">🔗</span> Copy Invite Link
+      <button class="fmgr-add-btn" onclick="shareFriendLink('https://habit-tracker-2a0ed.web.app/?add=${_currentUser ? _currentUser.uid : ''}');">
+        <span class="fmgr-add-icon">🔗</span> Copy Friend Invite Link
       </button>
+
       <div class="fmgr-section-label" style="margin-top:20px">Your Friends</div>
       <div id="fmgr-friends-list"><div class="fmgr-loading">Loading…</div></div>
+
+      <div class="fmgr-section-label" style="margin-top:24px">Groups</div>
+      <button class="fmgr-add-btn fmgr-group-btn" onclick="promptCreateGroup()">
+        <span class="fmgr-add-icon">👥</span> Create a Group
+      </button>
+      <div id="fmgr-groups-list" style="margin-top:12px"><div class="fmgr-loading">Loading…</div></div>
     </div>
   `;
   document.body.appendChild(modal);
   requestAnimationFrame(() => modal.classList.add('open'));
 
-  // Load friends list
   if (!_currentUser || !_fbDb) {
     document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Sign in to manage friends.</div>';
+    document.getElementById('fmgr-groups-list').innerHTML = '';
     return;
   }
+
+  // Load friends
   try {
     const myDoc = await _fbDb.collection('users').doc(_currentUser.uid).get();
     const friends = myDoc.exists ? (myDoc.data().friends || []) : [];
     const listEl = document.getElementById('fmgr-friends-list');
     if (friends.length === 0) {
       listEl.innerHTML = '<div class="fmgr-empty">No friends yet — share your invite link!</div>';
+    } else {
+      let html = '';
+      for (const uid of friends) {
+        try {
+          const fd = (await _fbDb.collection('users').doc(uid).get()).data() || {};
+          const name = fd.displayName || fd.email || uid;
+          const initial = name.charAt(0).toUpperCase();
+          const photo = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
+          html += `
+            <div class="fmgr-friend-row">
+              <div class="fmgr-avatar">${photo}</div>
+              <div class="fmgr-friend-name">${name}</div>
+              <button class="fmgr-remove" onclick="removeFriendFromManager('${uid}')">Remove</button>
+            </div>`;
+        } catch(e) { /* skip */ }
+      }
+      listEl.innerHTML = html;
+    }
+  } catch(e) {
+    document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Could not load friends.</div>';
+  }
+
+  // Load groups
+  await _loadManagerGroups();
+}
+
+async function _loadManagerGroups() {
+  const listEl = document.getElementById('fmgr-groups-list');
+  if (!listEl) return;
+  try {
+    const snap = await _fbDb.collection('groups')
+      .where('members', 'array-contains', _currentUser.uid).get();
+    if (snap.empty) {
+      listEl.innerHTML = '<div class="fmgr-empty">No groups yet — create one!</div>';
       return;
     }
     let html = '';
-    for (const uid of friends) {
-      try {
-        const fd = (await _fbDb.collection('users').doc(uid).get()).data() || {};
-        const name = fd.displayName || fd.email || uid;
-        const initial = name.charAt(0).toUpperCase();
-        const photo = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
-        html += `
-          <div class="fmgr-friend-row">
-            <div class="fmgr-avatar">${photo}</div>
-            <div class="fmgr-friend-name">${name}</div>
-            <button class="fmgr-remove" onclick="removeFriendFromManager('${uid}')">Remove</button>
-          </div>`;
-      } catch(e) { /* skip */ }
-    }
+    snap.forEach(doc => {
+      const g = doc.data();
+      const memberCount = (g.members || []).length;
+      html += `
+        <div class="fmgr-group-row">
+          <div class="fmgr-group-icon">👥</div>
+          <div class="fmgr-group-info">
+            <div class="fmgr-group-name">${g.name}</div>
+            <div class="fmgr-group-meta">${memberCount} member${memberCount !== 1 ? 's' : ''}</div>
+          </div>
+          <div class="fmgr-group-actions">
+            <button class="fmgr-remove" onclick="shareGroupLink('${doc.id}')">Invite</button>
+            <button class="fmgr-remove" style="color:#888" onclick="leaveGroup('${doc.id}')">Leave</button>
+          </div>
+        </div>`;
+    });
     listEl.innerHTML = html;
   } catch(e) {
-    document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Could not load friends.</div>';
+    listEl.innerHTML = '<div class="fmgr-empty">Could not load groups.</div>';
   }
 }
 
@@ -2194,4 +2299,71 @@ function closeFriendsManager() {
   if (!modal) return;
   modal.classList.remove('open');
   setTimeout(() => modal.remove(), 300);
+}
+
+function promptCreateGroup() {
+  const name = prompt('Group name:');
+  if (!name || !name.trim()) return;
+  createGroup(name.trim());
+}
+
+async function createGroup(name) {
+  if (!_currentUser || !_fbDb) return;
+  try {
+    const ref = await _fbDb.collection('groups').add({
+      name,
+      createdBy: _currentUser.uid,
+      members: [_currentUser.uid],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await _fbDb.collection('users').doc(_currentUser.uid).update({
+      groups: firebase.firestore.FieldValue.arrayUnion(ref.id)
+    });
+    shareGroupLink(ref.id);
+    await _loadManagerGroups();
+    renderFriends();
+  } catch(e) {
+    alert('Could not create group: ' + (e.code || e.message));
+  }
+}
+
+function shareGroupLink(groupId) {
+  const url = `https://habit-tracker-2a0ed.web.app/?joingroup=${groupId}`;
+  if (navigator.share) {
+    navigator.share({ title: 'Join my habit group!', url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => alert('Group invite link copied!')).catch(() => {});
+  }
+}
+
+async function joinGroup(groupId) {
+  if (!_currentUser || !_fbDb) return;
+  try {
+    await _fbDb.collection('groups').doc(groupId).update({
+      members: firebase.firestore.FieldValue.arrayUnion(_currentUser.uid)
+    });
+    await _fbDb.collection('users').doc(_currentUser.uid).update({
+      groups: firebase.firestore.FieldValue.arrayUnion(groupId)
+    });
+    renderFriends();
+  } catch(e) {
+    console.warn('Could not join group:', e);
+  }
+}
+
+async function leaveGroup(groupId) {
+  if (!_currentUser || !_fbDb) return;
+  if (!confirm('Leave this group?')) return;
+  try {
+    await _fbDb.collection('groups').doc(groupId).update({
+      members: firebase.firestore.FieldValue.arrayRemove(_currentUser.uid)
+    });
+    await _fbDb.collection('users').doc(_currentUser.uid).update({
+      groups: firebase.firestore.FieldValue.arrayRemove(groupId)
+    });
+    await _loadManagerGroups();
+    renderFriends();
+  } catch(e) {
+    alert('Could not leave group: ' + (e.code || e.message));
+  }
 }
