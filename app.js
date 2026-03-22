@@ -2048,7 +2048,7 @@ function resetAllData() {
   let startY = 0;
   let pulling = false;
   let triggered = false;
-  const threshold = 80;
+  const threshold = window.innerHeight * 0.10;
 
   const indicator = document.createElement('div');
   indicator.id = 'ptr-indicator';
