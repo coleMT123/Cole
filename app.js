@@ -2052,3 +2052,76 @@ function resetAllData() {
     renderJournal();
   };
 }
+
+// ── PULL TO REFRESH ──────────────────────────────────────
+(function initPullToRefresh() {
+  let startY = 0;
+  let pulling = false;
+  let triggered = false;
+  const threshold = 80;
+
+  const indicator = document.createElement('div');
+  indicator.id = 'ptr-indicator';
+  indicator.innerHTML = '<div class="ptr-spinner"></div>';
+  document.body.appendChild(indicator);
+
+  const appEl = document.querySelector('.app') || document.body;
+
+  function getScrollTop() {
+    const active = document.querySelector('.page-inner.active') || document.querySelector('.page.active');
+    return active ? active.scrollTop : window.scrollY;
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (getScrollTop() > 2) return;
+    startY = e.touches[0].clientY;
+    pulling = true;
+    triggered = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy <= 0) { pulling = false; return; }
+    if (getScrollTop() > 2) { pulling = false; return; }
+
+    const pull = Math.min(dy, threshold * 1.5);
+    const pct  = Math.min(pull / threshold, 1);
+
+    appEl.style.transform = `translateY(${pull * 0.4}px)`;
+    appEl.style.transition = 'none';
+
+    indicator.style.opacity = pct;
+    indicator.style.transform = `translateX(-50%) translateY(${Math.min(pull * 0.4, 32)}px) scale(${0.5 + pct * 0.5})`;
+
+    if (pull >= threshold && !triggered) {
+      triggered = true;
+      indicator.classList.add('spinning');
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!pulling) return;
+    pulling = false;
+
+    appEl.style.transition = 'transform 0.35s cubic-bezier(0.25,1,0.5,1)';
+    appEl.style.transform = '';
+
+    if (triggered) {
+      indicator.style.opacity = '1';
+      setTimeout(() => {
+        // Refresh current tab content
+        const tab = document.querySelector('.nav-btn.active');
+        if (tab) tab.click();
+        if (typeof loadFromCloud === 'function') loadFromCloud();
+
+        indicator.style.opacity = '0';
+        indicator.style.transform = 'translateX(-50%) translateY(0) scale(0.5)';
+        indicator.classList.remove('spinning');
+      }, 900);
+    } else {
+      indicator.style.opacity = '0';
+      indicator.style.transform = 'translateX(-50%) translateY(0) scale(0.5)';
+    }
+  });
+})();

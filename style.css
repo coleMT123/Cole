@@ -2552,3 +2552,33 @@ body.theme-wood .share-btn:hover { background: #d9924a; }
 body.theme-wood .auth-gate-login-btn { background: #c8852a; box-shadow: 0 4px 24px #c8852a44; }
 body.theme-wood .auth-gate-login-btn:hover { background: #d9924a; }
 body.theme-wood .friend-avatar { background: linear-gradient(135deg, #c8852a, #8b5e1a); box-shadow: 0 0 14px #c8852a33; }
+
+/* ── PULL TO REFRESH ── */
+#ptr-indicator {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0) scale(0.5);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.ptr-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(245,158,11,0.25);
+  border-top-color: #f59e0b;
+  border-radius: 50%;
+  background: #111;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+#ptr-indicator.spinning .ptr-spinner {
+  animation: ptr-spin 0.7s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
