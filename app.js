@@ -141,7 +141,7 @@ async function _handleFriendAdd(friendUid) {
     await _fbDb.collection('users').doc(friendUid).set({
       friends: firebase.firestore.FieldValue.arrayUnion(myUid)
     }, { merge: true });
-    alert('Friend added! Check the Friends tab.');
+    renderFriends();
   } catch(e) {
     alert('Friend add failed: ' + (e.code || e.message));
     console.error('Friend add failed:', e);
@@ -1496,24 +1496,45 @@ async function renderFriends() {
           const completedCount = habits.filter(h => !!todayData[h.id]).length;
           const totalCount = habits.length;
 
-          // Build habit dots
-          const dots = habits.map(h =>
-            `<span class="friend-habit-dot ${todayData[h.id] ? 'done' : ''}" title="${h.name}" style="--dot-color:${h.color || '#555'}">${h.emoji || '●'}</span>`
-          ).join('');
-
           const friendPhotoUrl = fd.photoDataUrl || '';
           const friendInitial = (fd.displayName || friendEmail).charAt(0).toUpperCase();
           const friendAvatarInner = friendPhotoUrl
             ? `<img src="${friendPhotoUrl}" alt="${friendInitial}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
             : friendInitial;
+
+          // Calculate best streak across all habits
+          const bestStreak = Math.max(...habits.map(h => getStreak(h.id, fd.habitData || {})));
+          const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+          // Build habit rows with emoji + name + done indicator
+          const habitRows = habits.map(h => {
+            const done = !!todayData[h.id];
+            const hStreak = getStreak(h.id, fd.habitData || {});
+            return `
+              <div class="fcard-habit-row ${done ? 'done' : ''}">
+                <span class="fcard-habit-emoji">${h.emoji || '●'}</span>
+                <span class="fcard-habit-name">${h.name}</span>
+                ${hStreak > 0 ? `<span class="fcard-habit-streak">🔥${hStreak}</span>` : ''}
+                <span class="fcard-habit-check">${done ? '✓' : ''}</span>
+              </div>`;
+          }).join('');
+
           html += `
             <div class="friend-card">
-              <div class="friend-avatar">${friendAvatarInner}</div>
-              <div class="friend-info">
-                <div class="friend-name">${friendName}</div>
-                <div class="friend-streak">${completedCount}/${totalCount} habits today</div>
-                <div class="friend-dots">${dots}</div>
+              <div class="fcard-header">
+                <div class="friend-avatar">${friendAvatarInner}</div>
+                <div class="fcard-header-info">
+                  <div class="friend-name">${friendName}</div>
+                  <div class="fcard-meta">
+                    ${bestStreak > 0 ? `<span class="fcard-best-streak">🔥 ${bestStreak} day streak</span>` : '<span class="fcard-meta-dim">No streak yet</span>'}
+                  </div>
+                  <div class="fcard-progress-bar-wrap">
+                    <div class="fcard-progress-bar" style="width:${pct}%"></div>
+                  </div>
+                  <div class="fcard-progress-label">${completedCount}/${totalCount} habits today</div>
+                </div>
               </div>
+              <div class="fcard-habits">${habitRows}</div>
             </div>
           `;
         } catch(e) { /* skip this friend if fetch fails */ }

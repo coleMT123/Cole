@@ -2377,41 +2377,130 @@ body.theme-wood .cal-view-toggle:hover { border-color: #c8852a; color: #c8852a; 
 .friend-card {
   background: #1a1a1a;
   border: 1.5px solid #2a2a2a;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fcard-header {
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .friend-avatar {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #f59e0b, #d97706);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #000;
   flex-shrink: 0;
   box-shadow: 0 0 14px #f59e0b33;
+  overflow: hidden;
 }
 
-.friend-info {
+.fcard-header-info {
   flex: 1;
   min-width: 0;
 }
 
 .friend-name {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #e0e0e0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 2px;
+}
+
+.fcard-meta {
+  margin-bottom: 6px;
+}
+
+.fcard-best-streak {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.fcard-meta-dim {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+.fcard-progress-bar-wrap {
+  background: #2a2a2a;
+  border-radius: 99px;
+  height: 5px;
+  width: 100%;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+
+.fcard-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.fcard-progress-label {
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.fcard-habits {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid #222;
+  padding-top: 12px;
+}
+
+.fcard-habit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.fcard-habit-row.done {
+  opacity: 1;
+}
+
+.fcard-habit-emoji {
+  font-size: 1rem;
+  width: 22px;
+  text-align: center;
+}
+
+.fcard-habit-name {
+  flex: 1;
+  font-size: 0.82rem;
+  color: #ccc;
+}
+
+.fcard-habit-streak {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.fcard-habit-check {
+  font-size: 0.85rem;
+  color: #4ade80;
+  font-weight: 700;
+  width: 16px;
+  text-align: center;
 }
 
 .friend-streak {
