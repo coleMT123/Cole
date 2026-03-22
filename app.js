@@ -2125,3 +2125,84 @@ function resetAllData() {
     }
   });
 })();
+
+// ── FRIENDS MANAGER ──────────────────────────────────────
+async function openFriendsManager() {
+  // Remove any existing modal
+  document.getElementById('friends-manager-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'friends-manager-modal';
+  modal.innerHTML = `
+    <div class="fmgr-backdrop" onclick="closeFriendsManager()"></div>
+    <div class="fmgr-sheet">
+      <div class="fmgr-handle"></div>
+      <div class="fmgr-header">
+        <span class="fmgr-title">Manage Friends</span>
+        <button class="fmgr-close" onclick="closeFriendsManager()">✕</button>
+      </div>
+      <div class="fmgr-section-label">Add a Friend</div>
+      <button class="fmgr-add-btn" onclick="shareFriendLink('https://habit-tracker-2a0ed.web.app/?add=${_currentUser ? _currentUser.uid : ''}'); closeFriendsManager();">
+        <span class="fmgr-add-icon">🔗</span> Copy Invite Link
+      </button>
+      <div class="fmgr-section-label" style="margin-top:20px">Your Friends</div>
+      <div id="fmgr-friends-list"><div class="fmgr-loading">Loading…</div></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('open'));
+
+  // Load friends list
+  if (!_currentUser || !_fbDb) {
+    document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Sign in to manage friends.</div>';
+    return;
+  }
+  try {
+    const myDoc = await _fbDb.collection('users').doc(_currentUser.uid).get();
+    const friends = myDoc.exists ? (myDoc.data().friends || []) : [];
+    const listEl = document.getElementById('fmgr-friends-list');
+    if (friends.length === 0) {
+      listEl.innerHTML = '<div class="fmgr-empty">No friends yet — share your invite link!</div>';
+      return;
+    }
+    let html = '';
+    for (const uid of friends) {
+      try {
+        const fd = (await _fbDb.collection('users').doc(uid).get()).data() || {};
+        const name = fd.displayName || fd.email || uid;
+        const initial = name.charAt(0).toUpperCase();
+        const photo = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
+        html += `
+          <div class="fmgr-friend-row">
+            <div class="fmgr-avatar">${photo}</div>
+            <div class="fmgr-friend-name">${name}</div>
+            <button class="fmgr-remove" onclick="removeFriendFromManager('${uid}')">Remove</button>
+          </div>`;
+      } catch(e) { /* skip */ }
+    }
+    listEl.innerHTML = html;
+  } catch(e) {
+    document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Could not load friends.</div>';
+  }
+}
+
+async function removeFriendFromManager(friendUid) {
+  if (!_currentUser || !_fbDb) return;
+  if (!confirm('Remove this friend?')) return;
+  try {
+    await _fbDb.collection('users').doc(_currentUser.uid).update({
+      friends: firebase.firestore.FieldValue.arrayRemove(friendUid)
+    });
+    openFriendsManager(); // refresh the modal
+    renderFriends();
+  } catch(e) {
+    alert('Could not remove: ' + (e.code || e.message));
+  }
+}
+
+function closeFriendsManager() {
+  const modal = document.getElementById('friends-manager-modal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  setTimeout(() => modal.remove(), 300);
+}
