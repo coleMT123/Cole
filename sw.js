@@ -1,4 +1,4 @@
-const CACHE = 'habit-tracker-v4';
+const CACHE = 'habit-tracker-v5';
 const STATIC = [
   './',
   './index.html',

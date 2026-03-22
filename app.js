@@ -84,7 +84,7 @@ function initFirebase() {
   // Do NOT show auth gate yet — wait for Firebase to check if user is logged in
   if (typeof FIREBASE_CONFIG === 'undefined' || FIREBASE_CONFIG.apiKey.startsWith('PASTE')) {
     _hideLoadingScreen();
-    _showAuthGateLanding();
+    _showAuthGate();  // shows landing with buttons
     return;
   }
 
@@ -144,13 +144,13 @@ function initFirebase() {
       } else {
         // Not logged in — hide loading, show login
         _hideLoadingScreen();
-        _showAuthGateLanding();
+        _showAuthGate();
       }
       refreshAccountArea();
     });
   } catch(e) {
     _hideLoadingScreen();
-    _showAuthGateLanding();
+    _showAuthGate();
   }
 }
 
@@ -677,7 +677,8 @@ function saveNewHabit() {
   const habits = getHabits();
   const id = 'habit-' + Date.now();
   const color = HABIT_COLORS[habits.length % HABIT_COLORS.length];
-  habits.push({ id, name, emoji, color });
+  // Insert at beginning so new habit appears at top of the list
+  habits.unshift({ id, name, emoji, color });
   saveHabitsConfig(habits);
   buildHabitCards();
   render();
@@ -751,9 +752,11 @@ function goTo(index) {
   document.querySelectorAll('.nav-btn').forEach((btn, i) => {
     btn.classList.toggle('active', i === index);
   });
+  // Toggle progress background visibility (avoid bleed-through on other pages)
+  document.body.classList.toggle('page-progress-active', index === 0);
   // Always restore nav when switching pages
   document.querySelector('.bottom-nav').classList.remove('hidden');
-  if (index === 0) renderProgress();
+  if (index === 0) renderProgress(true);
   if (index === 1) render();
   if (index === 2) renderJournal();
   if (index === 3) renderFriends();
@@ -783,17 +786,22 @@ function saveData(data) {
 function getStreak(habitId, data) {
   let streak = 0;
   const today = getToday();
-  let date = new Date(today);
+  // Use a date object but build the key string manually (avoids UTC offset bugs with toISOString)
+  const todayParts = today.split('-');
+  let d = new Date(parseInt(todayParts[0]), parseInt(todayParts[1]) - 1, parseInt(todayParts[2]));
 
   while (true) {
-    const key = date.toISOString().split('T')[0];
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const key = `${y}-${m}-${day}`;
     if (key === today) {
-      date.setDate(date.getDate() - 1);
+      d.setDate(d.getDate() - 1);
       continue;
     }
     if (data[key] && data[key][habitId]) {
       streak++;
-      date.setDate(date.getDate() - 1);
+      d.setDate(d.getDate() - 1);
     } else {
       break;
     }
@@ -807,18 +815,23 @@ function getGratitudeStreak() {
   const journals = JSON.parse(localStorage.getItem('grateful') || '{}');
   const today = getToday();
   let streak = 0;
-  let date = new Date(today);
+  // Build date manually to avoid UTC offset bugs
+  const todayParts = today.split('-');
+  let d = new Date(parseInt(todayParts[0]), parseInt(todayParts[1]) - 1, parseInt(todayParts[2]));
 
   while (true) {
-    const key = date.toISOString().split('T')[0];
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const key = `${y}-${m}-${day}`;
     if (key === today) {
-      date.setDate(date.getDate() - 1);
+      d.setDate(d.getDate() - 1);
       continue;
     }
     const e = journals[key];
     if (e && e.s1 && e.s2 && e.s3) {
       streak++;
-      date.setDate(date.getDate() - 1);
+      d.setDate(d.getDate() - 1);
     } else {
       break;
     }
@@ -1070,11 +1083,11 @@ function setProgressBg() {
   bg.style.backgroundImage = `url(https://images.unsplash.com/${photoId}?w=1200&q=75&auto=format&fit=crop)`;
 }
 
-function renderProgress() {
+function renderProgress(resetWeek) {
   const data = loadData();
 
-  // Always reset to current week when visiting Progress
-  viewWeekOffset = 0;
+  // Reset to current week only when explicitly navigating to Progress tab
+  if (resetWeek) viewWeekOffset = 0;
 
   setProgressBg();
 
@@ -1362,29 +1375,15 @@ function submitGrateful(n) {
   const isAlreadyDone = item?.classList.contains('done');
 
   if (isAlreadyDone) {
-    // Open for inline editing without un-submitting — gold circle stays
+    // Open for inline editing — checkmark button stays gold, only re-tapping saves
     if (now - (_gratefulSubmitTimes[n] || 0) < 400) return;
     item?.classList.remove('done');
-    // Wire up events so re-submitting or clearing works
+    // Wire up input tracking; do NOT auto-save on blur (only save on checkmark tap)
     if (textarea) {
-      textarea.onblur = () => {
-        const text = textarea.value.trim();
-        const j2 = JSON.parse(localStorage.getItem('grateful') || '{}');
-        if (!j2[today]) j2[today] = { g1: '', g2: '', g3: '', s1: false, s2: false, s3: false };
-        if (text) {
-          j2[today][`g${n}`] = text;
-          j2[today][`s${n}`] = true;
-          item?.classList.add('done');
-        } else {
-          j2[today][`s${n}`] = false;
-          j2[today][`g${n}`] = '';
-        }
-        localStorage.setItem('grateful', JSON.stringify(j2));
-        queueSync();
-        updateJournalNavTab(j2[today]);
-      };
+      textarea.onblur = null;
+      textarea.oninput = () => { _gratefulDrafts[n] = textarea.value; };
       textarea.onkeydown = (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); textarea.blur(); }
+        if (e.key === 'Enter') { e.preventDefault(); submitGrateful(n); }
       };
     }
     return;
@@ -1544,7 +1543,7 @@ async function renderFriends() {
             : friendInitial;
 
           // Calculate best streak across all habits
-          const bestStreak = Math.max(...habits.map(h => getStreak(h.id, fd.habitData || {})));
+          const bestStreak = habits.length > 0 ? Math.max(...habits.map(h => getStreak(h.id, fd.habitData || {}))) : 0;
           const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
           // Build habit rows with emoji + name + done indicator
@@ -2268,42 +2267,14 @@ async function openFriendsManager() {
     return;
   }
 
-  // Load friends
-  try {
-    const myDoc = await _fbDb.collection('users').doc(_currentUser.uid).get();
-    const friends = myDoc.exists ? (myDoc.data().friends || []) : [];
-    const listEl = document.getElementById('fmgr-friends-list');
-    if (friends.length === 0) {
-      listEl.innerHTML = '<div class="fmgr-empty">No friends yet — share your invite link!</div>';
-    } else {
-      let html = '';
-      for (const uid of friends) {
-        try {
-          const fd = (await _fbDb.collection('users').doc(uid).get()).data() || {};
-          const name = fd.displayName || fd.email || uid;
-          const initial = name.charAt(0).toUpperCase();
-          const photo = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
-          html += `
-            <div class="fmgr-friend-row">
-              <div class="fmgr-avatar">${photo}</div>
-              <div class="fmgr-friend-name">${name}</div>
-              <button class="fmgr-remove" onclick="removeFriendFromManager('${uid}')">Remove</button>
-            </div>`;
-        } catch(e) { /* skip */ }
-      }
-      listEl.innerHTML = html;
-    }
-  } catch(e) {
-    document.getElementById('fmgr-friends-list').innerHTML = '<div class="fmgr-empty">Could not load friends.</div>';
-  }
-
-  // Load groups
+  // Load friends and groups
+  await _loadManagerFriendsList();
   await _loadManagerGroups();
 }
 
 async function _loadManagerGroups() {
   const listEl = document.getElementById('fmgr-groups-list');
-  if (!listEl) return;
+  if (!listEl || !_currentUser || !_fbDb) return;
   try {
     const snap = await _fbDb.collection('groups')
       .where('members', 'array-contains', _currentUser.uid).get();
@@ -2341,10 +2312,43 @@ async function removeFriendFromManager(friendUid) {
     await _fbDb.collection('users').doc(_currentUser.uid).update({
       friends: firebase.firestore.FieldValue.arrayRemove(friendUid)
     });
-    openFriendsManager(); // refresh the modal
+    // Refresh just the friends list in the modal without closing/reopening it
+    await _loadManagerFriendsList();
     renderFriends();
   } catch(e) {
     alert('Could not remove: ' + (e.code || e.message));
+  }
+}
+
+async function _loadManagerFriendsList() {
+  const listEl = document.getElementById('fmgr-friends-list');
+  if (!listEl || !_currentUser || !_fbDb) return;
+  listEl.innerHTML = '<div class="fmgr-loading">Loading…</div>';
+  try {
+    const myDoc = await _fbDb.collection('users').doc(_currentUser.uid).get();
+    const friends = myDoc.exists ? (myDoc.data().friends || []) : [];
+    if (friends.length === 0) {
+      listEl.innerHTML = '<div class="fmgr-empty">No friends yet — share your invite link!</div>';
+      return;
+    }
+    let html = '';
+    for (const uid of friends) {
+      try {
+        const fd = (await _fbDb.collection('users').doc(uid).get()).data() || {};
+        const name = fd.displayName || fd.email || uid;
+        const initial = name.charAt(0).toUpperCase();
+        const photo = fd.photoDataUrl ? `<img src="${fd.photoDataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initial;
+        html += `
+          <div class="fmgr-friend-row">
+            <div class="fmgr-avatar">${photo}</div>
+            <div class="fmgr-friend-name">${name}</div>
+            <button class="fmgr-remove" onclick="removeFriendFromManager('${uid}')">Remove</button>
+          </div>`;
+      } catch(e) { /* skip */ }
+    }
+    listEl.innerHTML = html;
+  } catch(e) {
+    listEl.innerHTML = '<div class="fmgr-empty">Could not load friends.</div>';
   }
 }
 
@@ -2395,9 +2399,9 @@ async function createGroup(name) {
       members: [_currentUser.uid],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    await _fbDb.collection('users').doc(_currentUser.uid).update({
+    await _fbDb.collection('users').doc(_currentUser.uid).set({
       groups: firebase.firestore.FieldValue.arrayUnion(ref.id)
-    });
+    }, { merge: true });
     shareGroupLink(ref.id);
     await _loadManagerGroups();
     renderFriends();
@@ -2418,12 +2422,13 @@ function shareGroupLink(groupId) {
 async function joinGroup(groupId) {
   if (!_currentUser || !_fbDb) return;
   try {
-    await _fbDb.collection('groups').doc(groupId).update({
+    // Use set+merge so it works even if user doc doesn't exist yet
+    await _fbDb.collection('groups').doc(groupId).set({
       members: firebase.firestore.FieldValue.arrayUnion(_currentUser.uid)
-    });
-    await _fbDb.collection('users').doc(_currentUser.uid).update({
+    }, { merge: true });
+    await _fbDb.collection('users').doc(_currentUser.uid).set({
       groups: firebase.firestore.FieldValue.arrayUnion(groupId)
-    });
+    }, { merge: true });
     renderFriends();
   } catch(e) {
     console.warn('Could not join group:', e);

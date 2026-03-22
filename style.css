@@ -103,7 +103,9 @@ h1 {
 }
 
 .bottom-nav.hidden {
-  opacity: 1;
+  opacity: 0;
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 .nav-btn {
@@ -1116,6 +1118,13 @@ body.theme-wood .streak-card-gratitude .streak-card-count { color: #c084fc; }
   z-index: 0;
   pointer-events: none;
   will-change: transform;
+  /* Hidden by default; only visible when progress page is active */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+body.page-progress-active .progress-bg {
+  opacity: 1;
 }
 
 .progress-bg::after {
