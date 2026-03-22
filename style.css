@@ -1467,28 +1467,32 @@ body.theme-wood .flame-cell.active .flame-cell-score { color: #6b3d10; }
   opacity: 0;
   max-width: 0;
   overflow: hidden;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #1a0505;
-  border: 1.5px solid #5a1515;
-  color: #f87171;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  border: 2px solid #444;
+  color: #666;
   font-size: 1rem;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  line-height: 1;
   padding: 0;
   margin-right: 0;
-  transition: opacity 0.25s ease, max-width 0.25s ease, margin-right 0.25s ease;
+  transition: opacity 0.25s ease, max-width 0.25s ease, margin-right 0.25s ease, background 0.2s, border-color 0.2s, color 0.2s;
+  touch-action: manipulation;
 }
 #habit-list.edit-mode .remove-habit-btn {
   opacity: 1;
-  max-width: 32px;
-  margin-right: 6px;
+  max-width: 34px;
+  margin-right: 8px;
 }
-.remove-habit-btn:hover { background: #2a0808; border-color: #f87171; }
+.remove-habit-btn:active {
+  background: #f87171;
+  border-color: #f87171;
+  color: #fff;
+}
 
 .add-habit-btn {
   width: 100%;

@@ -848,7 +848,11 @@ function buildHabitCards() {
 
   list.innerHTML = ordered.map(h => `
     <div class="habit-card" data-habit="${h.id}" ${habitEditMode ? 'draggable="true"' : ''}>
-      <button class="remove-habit-btn" onclick="removeHabit('${h.id}')">−</button>
+      <button class="remove-habit-btn" onclick="removeHabit('${h.id}')" title="Remove habit">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.5 6.5L5.5 9.5L10.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <div class="drag-handle">⠿</div>
       <div class="habit-info">
         <span class="emoji">${h.emoji}</span>
