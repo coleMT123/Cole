@@ -2103,10 +2103,11 @@ function resetAllData() {
 
 // ── PULL TO REFRESH ──────────────────────────────────────
 (function initPullToRefresh() {
+  const threshold = window.innerHeight * 0.10;
   let startY = 0;
   let pulling = false;
-  let triggered = false;
-  const threshold = window.innerHeight * 0.10;
+  let firstPullTime = 0;
+  let firstPullDone = false;
 
   const indicator = document.createElement('div');
   indicator.id = 'ptr-indicator';
@@ -2116,35 +2117,56 @@ function resetAllData() {
   const appEl = document.querySelector('.app') || document.body;
 
   function getScrollTop() {
-    const active = document.querySelector('.page-inner.active') || document.querySelector('.page.active');
+    const pages = document.querySelectorAll('.page');
+    const active = pages[typeof currentPage !== 'undefined' ? currentPage : 0];
     return active ? active.scrollTop : window.scrollY;
+  }
+
+  function resetIndicator() {
+    indicator.style.transition = 'opacity 0.25s, transform 0.25s';
+    indicator.style.opacity = '0';
+    indicator.style.transform = 'translateX(-50%) scale(0.5)';
+    indicator.classList.remove('spinning');
+  }
+
+  function doRefresh() {
+    indicator.classList.add('spinning');
+    indicator.style.opacity = '1';
+    indicator.style.transform = 'translateX(-50%) translateY(16px) scale(1)';
+    setTimeout(() => {
+      const tab = document.querySelector('.nav-btn.active');
+      if (tab) tab.click();
+      if (typeof loadFromCloud === 'function') loadFromCloud();
+      setTimeout(resetIndicator, 400);
+    }, 700);
   }
 
   document.addEventListener('touchstart', e => {
     if (getScrollTop() > 2) return;
     startY = e.touches[0].clientY;
     pulling = true;
-    triggered = false;
   }, { passive: true });
 
   document.addEventListener('touchmove', e => {
     if (!pulling) return;
     const dy = e.touches[0].clientY - startY;
-    if (dy <= 0) { pulling = false; return; }
-    if (getScrollTop() > 2) { pulling = false; return; }
+    if (dy <= 0 || getScrollTop() > 2) { pulling = false; return; }
 
-    const pull = Math.min(dy, threshold * 1.5);
+    const pull = Math.min(dy, threshold * 1.4);
     const pct  = Math.min(pull / threshold, 1);
 
-    appEl.style.transform = `translateY(${pull * 0.4}px)`;
     appEl.style.transition = 'none';
+    appEl.style.transform = `translateY(${pull * 0.35}px)`;
 
+    indicator.style.transition = 'none';
     indicator.style.opacity = pct;
-    indicator.style.transform = `translateX(-50%) translateY(${Math.min(pull * 0.4, 32)}px) scale(${0.5 + pct * 0.5})`;
+    indicator.style.transform = `translateX(-50%) translateY(${pull * 0.35}px) scale(${0.5 + pct * 0.5})`;
 
-    if (pull >= threshold && !triggered) {
-      triggered = true;
-      indicator.classList.add('spinning');
+    // Flash amber ring when first pull threshold is met
+    if (pull >= threshold && !firstPullDone) {
+      indicator.classList.add('ptr-ready');
+    } else if (pull < threshold) {
+      indicator.classList.remove('ptr-ready');
     }
   }, { passive: true });
 
@@ -2152,24 +2174,32 @@ function resetAllData() {
     if (!pulling) return;
     pulling = false;
 
-    appEl.style.transition = 'transform 0.35s cubic-bezier(0.25,1,0.5,1)';
+    appEl.style.transition = 'transform 0.4s cubic-bezier(0.22,1,0.36,1)';
     appEl.style.transform = '';
 
-    if (triggered) {
-      indicator.style.opacity = '1';
-      setTimeout(() => {
-        // Refresh current tab content
-        const tab = document.querySelector('.nav-btn.active');
-        if (tab) tab.click();
-        if (typeof loadFromCloud === 'function') loadFromCloud();
+    const reachedThreshold = indicator.classList.contains('ptr-ready');
+    indicator.classList.remove('ptr-ready');
 
-        indicator.style.opacity = '0';
-        indicator.style.transform = 'translateX(-50%) translateY(0) scale(0.5)';
-        indicator.classList.remove('spinning');
-      }, 900);
+    if (!reachedThreshold) {
+      resetIndicator();
+      return;
+    }
+
+    const now = Date.now();
+    if (!firstPullDone || now - firstPullTime > 600) {
+      // First pull — show "pull again" hint
+      firstPullDone = true;
+      firstPullTime = now;
+      indicator.style.transition = 'opacity 0.2s, transform 0.4s cubic-bezier(0.22,1,0.36,1)';
+      indicator.style.opacity = '0.6';
+      indicator.style.transform = 'translateX(-50%) translateY(16px) scale(0.85)';
+      setTimeout(() => {
+        if (!pulling) resetIndicator();
+      }, 550);
     } else {
-      indicator.style.opacity = '0';
-      indicator.style.transform = 'translateX(-50%) translateY(0) scale(0.5)';
+      // Second pull within 600ms — refresh!
+      firstPullDone = false;
+      doRefresh();
     }
   });
 })();
